@@ -6,7 +6,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 export async function askGemini(systemPrompt: string): Promise<string> {
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: systemPrompt,
+    contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
     config: {
       temperature: 1.0,
       maxOutputTokens: 1024,
