@@ -42,7 +42,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const systemPrompt = buildSystemPrompt(csvData, userMessage);
         replyMsg = await askGemini(systemPrompt);
       } catch (err) {
-        console.error("[webhook] gemini/sheet error:", err);
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[webhook] gemini/sheet error:", msg);
         replyMsg = DEFAULT_REPLY;
       }
 
