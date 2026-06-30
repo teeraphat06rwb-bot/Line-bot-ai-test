@@ -17,7 +17,9 @@ export function buildSystemPrompt(csvData: string, userMessage: string): string 
 </constraints>
 
 <output_format>
-ตอบเป็นภาษาไทยเท่านั้น ห้ามใช้ markdown (ห้ามมี **, #, -, bullet list) ใช้ข้อความธรรมดาต่อเนื่องแบบพูดคุย
+ตอบเป็นภาษาไทยเท่านั้น ห้ามใช้ markdown (ห้ามมี **, #, -, bullet list)
+แบ่งเนื้อหาเป็นย่อหน้าสั้นๆ โดยขึ้นบรรทัดใหม่ระหว่างแต่ละประเด็น เพื่อให้อ่านง่ายบน LINE
+ถ้ามีหลายรายการ ให้ขึ้นต้นแต่ละรายการด้วยอิโมจิที่เหมาะสม เช่น 📍 🕐 📋 💊 แทน bullet list
 </output_format>
 
 <faq>
