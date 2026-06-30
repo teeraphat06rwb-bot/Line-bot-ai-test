@@ -1,35 +1,27 @@
-import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk";
 import { DEFAULT_REPLY } from "./constants";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export async function askGemini(systemPrompt: string): Promise<string> {
-  console.log("[gemini] key present:", !!process.env.GEMINI_API_KEY, "key prefix:", process.env.GEMINI_API_KEY?.slice(0,8));
-  const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash",
-    contents: [{ role: "user", parts: [{ text: systemPrompt }] }],
-    config: {
-      temperature: 1.0,
-      maxOutputTokens: 1024,
-    },
+  console.log("[groq] key present:", !!process.env.GROQ_API_KEY);
+
+  const response = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [{ role: "user", content: systemPrompt }],
+    temperature: 1.0,
+    max_tokens: 1024,
   });
 
-  const candidate = response.candidates?.[0];
-  const finishReason = candidate?.finishReason ?? "UNKNOWN";
-  const thoughtsTokenCount = response.usageMetadata?.thoughtsTokenCount ?? 0;
-  const candidatesTokenCount = response.usageMetadata?.candidatesTokenCount ?? 0;
+  const choice = response.choices?.[0];
+  const finishReason = choice?.finish_reason ?? "UNKNOWN";
+  const totalTokens = response.usage?.total_tokens ?? 0;
 
-  console.log(
-    `[gemini] finishReason=${finishReason} thoughtsTokens=${thoughtsTokenCount} candidatesTokens=${candidatesTokenCount}`
-  );
+  console.log(`[groq] finishReason=${finishReason} totalTokens=${totalTokens}`);
 
-  if (
-    finishReason === "MAX_TOKENS" ||
-    finishReason === "SAFETY" ||
-    finishReason === "RECITATION"
-  ) {
+  if (finishReason === "length") {
     return DEFAULT_REPLY;
   }
 
-  return candidate?.content?.parts?.[0]?.text?.trim() ?? DEFAULT_REPLY;
+  return choice?.message?.content?.trim() ?? DEFAULT_REPLY;
 }

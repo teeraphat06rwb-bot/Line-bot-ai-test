@@ -1,21 +1,22 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk";
 
 export async function GET(): Promise<NextResponse> {
-  const key = process.env.GEMINI_API_KEY;
+  const key = process.env.GROQ_API_KEY;
   if (!key) return NextResponse.json({ error: "no key" });
 
   try {
-    const ai = new GoogleGenAI({ apiKey: key });
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [{ role: "user", parts: [{ text: "สวัสดี ตอบสั้นๆ" }] }],
-      config: { temperature: 1.0, maxOutputTokens: 50 },
+    const groq = new Groq({ apiKey: key });
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: "สวัสดี ตอบสั้นๆ" }],
+      temperature: 1.0,
+      max_tokens: 50,
     });
-    const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
-    return NextResponse.json({ ok: true, text, keyPrefix: key.slice(0, 8) });
+    const text = response.choices?.[0]?.message?.content;
+    return NextResponse.json({ ok: true, text, keyPrefix: key.slice(0, 6) });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ ok: false, error: msg, keyPrefix: key.slice(0, 8) });
+    return NextResponse.json({ ok: false, error: msg, keyPrefix: key.slice(0, 6) });
   }
 }
