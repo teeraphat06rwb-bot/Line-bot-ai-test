@@ -6,7 +6,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 async function callGroq(messages: Groq.Chat.ChatCompletionMessageParam[]): Promise<string> {
   const response = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: "llama-3.1-8b-instant",
     messages,
     temperature: 0.4,
     max_tokens: 300,
