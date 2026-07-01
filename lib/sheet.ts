@@ -2,7 +2,7 @@ let cachedCsv: string | null = null;
 let cacheExpireAt: number = 0;
 const CACHE_TTL_MS = 60 * 1000;
 
-// ค้นหาแถวที่เกี่ยวข้องกับคำถาม แทนที่จะส่ง CSV ทั้งหมด
+// ค้นหาแถวที่เกี่ยวข้องกับคำถาม โดยใช้ substring matching (รองรับภาษาไทยที่ไม่มีเว้นวรรค)
 export function filterRelevantFaq(csv: string, userMessage: string): string {
   const lines = csv.split("\n");
   const header = lines[0];
@@ -13,8 +13,19 @@ export function filterRelevantFaq(csv: string, userMessage: string): string {
     .map((row) => {
       const text = row.toLowerCase();
       let score = 0;
-      for (const word of query.split(/\s+/)) {
-        if (word.length > 1 && text.includes(word)) score++;
+      // ตรวจสอบ 2 ทิศทาง: คำใน query อยู่ใน row หรือคำใน row อยู่ใน query
+      // แบ่ง row เป็น segments (แต่ละ cell) เพื่อ matching แม่นขึ้น
+      const cells = text.split(",");
+      for (const cell of cells) {
+        const segment = cell.trim();
+        if (segment.length >= 2 && query.includes(segment)) score += 3; // row → query (แม่นมาก)
+      }
+      // query substring อยู่ใน row (ใช้ทุก ngram ขนาด 2+ ตัว)
+      for (let i = 0; i < query.length - 1; i++) {
+        for (let len = 2; len <= Math.min(8, query.length - i); len++) {
+          const chunk = query.slice(i, i + len);
+          if (text.includes(chunk)) { score++; break; }
+        }
       }
       return { row, score };
     })
