@@ -23,6 +23,9 @@ import { getHistory, appendHistory, clearHistory } from "@/lib/memory";
 const DOCTOR_KEYWORDS = ["รายชื่อแพทย์", "ดูหมอ", "แนะนำหมอ", "หมอท่านไหน", "แพทย์ท่านไหน", "รายชื่อหมอ", "พบหมอ", "ทีมแพทย์"];
 const BOOK_KEYWORDS = ["อยากนัด", "ขอนัด", "นัดหมาย", "จองคิว", "ลงทะเบียน", "อยากจอง", "ขอจอง", "นัดแพทย์", "นัดหมอ", "ทำนัด", "นัดได้ไหม", "จองได้ไหม", "อยากตรวจ", "ขอตรวจ", "สนใจตรวจ"];
 
+// เบอร์โทร 9-10 หลัก (มี 0 นำหน้า หรือ +66)
+const PHONE_REGEX = /(?:\+66|0)\d{8,9}/;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyEvent = Record<string, any>;
 
@@ -113,7 +116,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         continue;
       }
 
-      // 5. นัดหมาย → ขอข้อมูลติดต่อ (ใช้ AI ดึง context จาก history)
+      // 5. ลูกค้าส่งเบอร์โทร = ส่งข้อมูลการนัดมาแล้ว → ตอบรับเรื่องทันที
+      if (PHONE_REGEX.test(userMessage)) {
+        await replyText(replyToken,
+          "น้องได้รับข้อมูลของคุณแล้วนะคะ 📋\n\nเจ้าหน้าที่จะติดต่อกลับหาคุณภายใน 1 วันทำการค่ะ\n\nถ้าต้องการติดต่อด่วน โทรหาเราได้เลยที่ 063-816-6058 หรือ LINE: @chgcancercenter ค่ะ 😊"
+        );
+        await clearHistory(userId);
+        continue;
+      }
+
+      // 6. นัดหมาย → ขอข้อมูลติดต่อ (ใช้ AI ดึง context จาก history)
       if (BOOK_KEYWORDS.some((kw) => userMessage.includes(kw))) {
         let bookMsg = `ยินดีช่วยนัดหมายให้เลยค่ะ 😊\n\nกรุณาแจ้งข้อมูลด้านล่าง แล้วเจ้าหน้าที่จะติดต่อกลับภายใน 1 วันทำการค่ะ\n\n📝 ชื่อ-นามสกุล:\n📱 เบอร์โทรศัพท์:\n🕐 ช่วงเวลาที่สะดวกรับสาย:\n🏥 บริการที่สนใจ:\n\n${CONTACT_INFO}`;
         try {
