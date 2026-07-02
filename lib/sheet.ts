@@ -29,12 +29,11 @@ export function filterRelevantFaq(csv: string, userMessage: string): string | nu
       }
       return { row, score };
     })
-    .filter((r) => r.score > 0)
+    .filter((r) => r.score >= 3) // score >= 3 ถึงถือว่า match จริง
     .sort((a, b) => b.score - a.score)
     .slice(0, 6)
     .map((r) => r.row);
 
-  // คืน null ถ้าไม่พบ FAQ ที่เกี่ยวข้องเลย (ไม่ fallback เป็น 6 แถวแรก)
   if (scored.length === 0) return null;
   return [header, ...scored].join("\n");
 }
