@@ -177,6 +177,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const history = await getHistory(userId);
         const systemPrompt = buildSystemPrompt(relevantFaq);
         replyMsg = await askGemini(systemPrompt, [...history, { role: "user", content: userMessage }]);
+        // กรอง output: ถ้า AI ยังใช้คำต้องห้าม ให้ตัดออก
+        replyMsg = replyMsg.replace(/ไม่ต้องกลัว/g, "เข้าใจความรู้สึกนะคะ");
+        replyMsg = replyMsg.replace(/ครับ(?=[^/]|$)/g, "ค่ะ");
         await appendHistory(userId, userMessage, replyMsg);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
