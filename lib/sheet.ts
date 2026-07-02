@@ -20,9 +20,9 @@ export function filterRelevantFaq(csv: string, userMessage: string): string | nu
         const segment = cell.trim();
         if (segment.length >= 2 && query.includes(segment)) score += 3; // row → query (แม่นมาก)
       }
-      // query substring อยู่ใน row (ใช้ทุก ngram ขนาด 2+ ตัว)
-      for (let i = 0; i < query.length - 1; i++) {
-        for (let len = 2; len <= Math.min(8, query.length - i); len++) {
+      // query substring อยู่ใน row (ใช้ ngram ขนาด 4+ ตัว เพื่อลด false positive)
+      for (let i = 0; i < query.length - 3; i++) {
+        for (let len = 4; len <= Math.min(10, query.length - i); len++) {
           const chunk = query.slice(i, i + len);
           if (text.includes(chunk)) { score++; break; }
         }
