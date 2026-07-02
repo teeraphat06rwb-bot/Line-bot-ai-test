@@ -3,7 +3,7 @@ let cacheExpireAt: number = 0;
 const CACHE_TTL_MS = 60 * 1000;
 
 // ค้นหาแถวที่เกี่ยวข้องกับคำถาม โดยใช้ substring matching (รองรับภาษาไทยที่ไม่มีเว้นวรรค)
-export function filterRelevantFaq(csv: string, userMessage: string): string {
+export function filterRelevantFaq(csv: string, userMessage: string): string | null {
   const lines = csv.split("\n");
   const header = lines[0];
   const rows = lines.slice(1).filter((r) => r.trim());
@@ -34,8 +34,9 @@ export function filterRelevantFaq(csv: string, userMessage: string): string {
     .slice(0, 6)
     .map((r) => r.row);
 
-  const selected = scored.length > 0 ? scored : rows.slice(0, 6);
-  return [header, ...selected].join("\n");
+  // คืน null ถ้าไม่พบ FAQ ที่เกี่ยวข้องเลย (ไม่ fallback เป็น 6 แถวแรก)
+  if (scored.length === 0) return null;
+  return [header, ...scored].join("\n");
 }
 
 export async function getFaqCsv(): Promise<string> {

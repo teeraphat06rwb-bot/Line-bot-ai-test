@@ -8,6 +8,7 @@ import {
   DEFAULT_REPLY,
   DIAGNOSIS_REPLY,
   STAFF_REPLY,
+  FAQ_NOT_FOUND_REPLY,
   DIAGNOSIS_KEYWORDS,
   STAFF_KEYWORDS,
   CONTACT_INFO,
@@ -19,7 +20,7 @@ import {
 } from "@/lib/doctors";
 import { getHistory, appendHistory, clearHistory } from "@/lib/memory";
 
-const DOCTOR_KEYWORDS = ["รายชื่อแพทย์", "ดูหมอ", "แนะนำหมอ", "หมอท่านไหน", "แพทย์ท่านไหน", "รายชื่อหมอ", "หมอค่ะ", "พบหมอ", "ทีมแพทย์"];
+const DOCTOR_KEYWORDS = ["รายชื่อแพทย์", "ดูหมอ", "แนะนำหมอ", "หมอท่านไหน", "แพทย์ท่านไหน", "รายชื่อหมอ", "พบหมอ", "ทีมแพทย์"];
 const BOOK_KEYWORDS = ["อยากนัด", "ขอนัด", "นัดหมาย", "จองคิว", "ลงทะเบียน", "อยากจอง", "ขอจอง", "นัดแพทย์", "นัดหมอ", "ทำนัด", "นัดได้ไหม", "จองได้ไหม", "อยากตรวจ", "ขอตรวจ", "สนใจตรวจ"];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
 
         if (!doc) {
-          await replyFlex(replyToken, "ไม่พบข้อมูลแพทย์", buildReplyBubble("ขออภัยค่ะ ไม่พบข้อมูลแพทย์ท่านนี้ค่ะ\n\n" + CONTACT_INFO, true));
+          await replyText(replyToken, "ขออภัยค่ะ ไม่พบข้อมูลแพทย์ท่านนี้\n\n" + CONTACT_INFO);
           continue;
         }
 
@@ -87,14 +88,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         continue;
       }
 
-      // 2. SAFETY: วินิจฉัยโรค → hard-code ทันที ไม่ส่ง AI
+      // 2. SAFETY: วินิจฉัยโรค → hard-code ไม่ส่ง AI
       if (DIAGNOSIS_KEYWORDS.some((kw) => userMessage.includes(kw))) {
+        console.log("[webhook] diagnosis keyword triggered");
         await replyText(replyToken, DIAGNOSIS_REPLY);
         continue;
       }
 
-      // 3. SAFETY: ขอคุยกับเจ้าหน้าที่ → hard-code ทันที ไม่ส่ง AI
+      // 3. SAFETY: ขอคุยกับเจ้าหน้าที่ → hard-code ไม่ส่ง AI
       if (STAFF_KEYWORDS.some((kw) => userMessage.includes(kw))) {
+        console.log("[webhook] staff keyword triggered");
         await replyText(replyToken, STAFF_REPLY);
         continue;
       }
@@ -116,9 +119,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         try {
           const history = await getHistory(userId);
           if (history.length > 0) {
-            const bookPrompt = `คุณคือ "น้องใส่ใจ" ผู้ช่วยหญิงของศูนย์มะเร็งชีวารักษ์ ลงท้ายด้วย "ค่ะ" เท่านั้น
+            const bookPrompt = `คุณคือ "น้องใส่ใจ" ผู้ช่วยหญิงของศูนย์มะเร็งชีวารักษ์ ลงท้ายด้วย "ค่ะ" เท่านั้น ห้ามใช้ "ครับ"
 ผู้ใช้ต้องการนัดหมาย ให้อ้างอิง context ว่าสนใจบริการอะไร แล้วขอข้อมูล: ชื่อ เบอร์โทร ช่วงเวลาที่สะดวก และบริการที่สนใจ
-ตอบสั้นๆ อบอุ่น ห้ามใช้ markdown จบด้วย "${CONTACT_INFO}"`;
+ตอบสั้นๆ อบอุ่น ห้าม markdown จบด้วย "LINE: @chgcancercenter หรือโทร 063-816-6058 ค่ะ"`;
             bookMsg = await askGemini(bookPrompt, [...history, { role: "user", content: userMessage }]);
             await appendHistory(userId, userMessage, bookMsg);
           }
@@ -129,11 +132,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         continue;
       }
 
-      // 6. คำถามทั่วไป → AI + FAQ
+      // 6. คำถามทั่วไป → เช็ค FAQ ก่อน แล้วส่ง AI
       let replyMsg = DEFAULT_REPLY;
       try {
         const csvData = await getFaqCsv();
         const relevantFaq = filterRelevantFaq(csvData, userMessage);
+
+        // ถ้า FAQ ไม่มีข้อมูลเกี่ยวข้องเลย → ตอบ fallback ทันที ไม่ส่ง AI
+        if (relevantFaq === null) {
+          console.log("[webhook] no FAQ match, using fallback");
+          await replyText(replyToken, FAQ_NOT_FOUND_REPLY);
+          continue;
+        }
+
         const history = await getHistory(userId);
         const systemPrompt = buildSystemPrompt(relevantFaq);
         replyMsg = await askGemini(systemPrompt, [...history, { role: "user", content: userMessage }]);

@@ -9,7 +9,7 @@ async function callGroq(messages: Groq.Chat.ChatCompletionMessageParam[]): Promi
     model: "llama-3.1-8b-instant",
     messages,
     temperature: 0.4,
-    max_tokens: 300,
+    max_tokens: 250,
   });
   const choice = response.choices?.[0];
   const finishReason = choice?.finish_reason ?? "UNKNOWN";
