@@ -21,7 +21,12 @@ import {
 import { getHistory, appendHistory, clearHistory } from "@/lib/memory";
 
 const DOCTOR_KEYWORDS = ["รายชื่อแพทย์", "ดูหมอ", "แนะนำหมอ", "หมอท่านไหน", "แพทย์ท่านไหน", "รายชื่อหมอ", "พบหมอ", "ทีมแพทย์"];
-const BOOK_KEYWORDS = ["อยากนัด", "ขอนัด", "นัดหมาย", "จองคิว", "ลงทะเบียน", "อยากจอง", "ขอจอง", "นัดแพทย์", "นัดหมอ", "ทำนัด", "นัดได้ไหม", "จองได้ไหม", "อยากตรวจ", "ขอตรวจ", "สนใจตรวจ"];
+const BOOK_KEYWORDS = ["อยากนัด", "ขอนัด", "นัดหมาย", "จองคิว", "ลงทะเบียน", "อยากจอง", "ขอจอง", "นัดแพทย์", "นัดหมอ", "ทำนัด", "นัดได้ไหม", "จองได้ไหม", "ขอตรวจ", "สนใจตรวจ"];
+// คำถามไม่ชัด → ถามกลับแทนที่จะ booking หรือ AI
+const CLARIFY_KEYWORDS = ["ไม่รู้ว่า", "ไม่แน่ใจ", "ควรตรวจอะไร", "ตรวจอะไรดี", "แนะนำหน่อย"];
+const CLARIFY_REPLY = "อยากช่วยแนะนำให้ถูกต้องนะคะ 😊 ขอถามเพิ่มนิดนึงได้ไหมคะ\n\nตอนนี้มีอาการที่กังวลอยู่ไหมคะ หรืออยากตรวจคัดกรองทั่วไปคะ?\n\nบอกได้เลยค่ะ น้องจะแนะนำให้เหมาะกับคุณค่ะ 🙏";
+// ข้อความสั้นมากๆ ที่คลุมเครือ เช่น "มะเร็ง" เดี่ยวๆ
+const VAGUE_CANCER_REPLY = "ขอบคุณที่ติดต่อมานะคะ 😊 อยากทราบเพิ่มเติมว่าต้องการข้อมูลด้านใดคะ\n\n🔍 ตรวจคัดกรองมะเร็ง\n💊 ข้อมูลการรักษา\n👨‍👩‍👧 มีคนในครอบครัวที่ป่วยอยู่\n\nบอกได้เลยค่ะ น้องจะช่วยแนะนำให้ค่ะ 🙏";
 
 // เบอร์โทร 9-10 หลัก (มี 0 นำหน้า หรือ +66)
 const PHONE_REGEX = /(?:\+66|0)\d{8,9}/;
@@ -105,7 +110,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         continue;
       }
 
-      // 4. ดูรายชื่อแพทย์ → Flex Carousel
+      // 4. ข้อความสั้นคลุมเครือ "มะเร็ง" เดี่ยวๆ → ถามกลับ
+      if (userMessage.trim().length <= 6 && userMessage.includes("มะเร็ง")) {
+        await replyText(replyToken, VAGUE_CANCER_REPLY);
+        continue;
+      }
+
+      // ถามไม่ชัด → ถามกลับก่อน ไม่ต้อง booking
+      if (CLARIFY_KEYWORDS.some((kw) => userMessage.includes(kw))) {
+        await replyText(replyToken, CLARIFY_REPLY);
+        continue;
+      }
+
+      // 5. ดูรายชื่อแพทย์ → Flex Carousel
       if (DOCTOR_KEYWORDS.some((kw) => userMessage.includes(kw))) {
         try {
           await replyFlex(replyToken, "ทีมแพทย์ศูนย์มะเร็ง", buildDoctorCarousel());
