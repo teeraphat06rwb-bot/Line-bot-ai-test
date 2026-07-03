@@ -9,14 +9,23 @@ async function callGroq(messages: Groq.Chat.ChatCompletionMessageParam[]): Promi
     model: "llama-3.1-8b-instant",
     messages,
     temperature: 0.4,
-    max_tokens: 250,
+    max_tokens: 512,
   });
   const choice = response.choices?.[0];
   const finishReason = choice?.finish_reason ?? "UNKNOWN";
   const totalTokens = response.usage?.total_tokens ?? 0;
   console.log(`[groq] finishReason=${finishReason} tokens=${totalTokens}`);
-  if (finishReason === "length") return DEFAULT_REPLY;
-  return choice?.message?.content?.trim() ?? DEFAULT_REPLY;
+  const content = choice?.message?.content?.trim();
+  if (!content) return DEFAULT_REPLY;
+  // ถ้าโดนตัดกลางประโยค → ตัดกลับไปจบที่ประโยคสมบูรณ์สุดท้าย (จบด้วย "ค่ะ" หรือขึ้นบรรทัดใหม่)
+  if (finishReason === "length") {
+    const lastCa = content.lastIndexOf("ค่ะ");
+    if (lastCa > 0) return content.slice(0, lastCa + 3);
+    const lastNl = content.lastIndexOf("\n");
+    if (lastNl > 0) return content.slice(0, lastNl).trim();
+    return DEFAULT_REPLY;
+  }
+  return content;
 }
 
 export async function askGemini(

@@ -113,10 +113,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
 
       // SAFETY: ถามอาการของโรค → hard-code กัน AI มั่วอาการ
-      // ดัก keyword ตรงๆ หรือ มีทั้ง "อาการ" + "มะเร็ง" ในประโยคเดียว
+      // แต่ปล่อยคำถามแนวทางรักษา/ราคา/ผลข้างเคียง/ดูแล ให้ผ่านไปตอบจาก FAQ
+      const asksTreatment = /รักษา|วิธี|ราคา|ค่าใช้จ่าย|ผลข้างเคียง|คีโม|ฉายแสง|ผ่าตัด|ดูแล|เตรียมตัว|ประคับประคอง|สิทธิ|ประกัน/.test(userMessage);
       const asksSymptom =
-        SYMPTOM_KEYWORDS.some((kw) => userMessage.includes(kw)) ||
-        (userMessage.includes("อาการ") && userMessage.includes("มะเร็ง"));
+        !asksTreatment &&
+        (SYMPTOM_KEYWORDS.some((kw) => userMessage.includes(kw)) ||
+          (userMessage.includes("อาการ") && userMessage.includes("มะเร็ง")));
       if (asksSymptom) {
         console.log("[webhook] symptom keyword triggered");
         await replyText(replyToken, SYMPTOM_REPLY);
