@@ -11,6 +11,8 @@ import {
   FAQ_NOT_FOUND_REPLY,
   DIAGNOSIS_KEYWORDS,
   STAFF_KEYWORDS,
+  SYMPTOM_KEYWORDS,
+  SYMPTOM_REPLY,
   CONTACT_INFO,
 } from "@/lib/constants";
 import {
@@ -110,6 +112,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         continue;
       }
 
+      // SAFETY: ถามอาการของโรค → hard-code กัน AI มั่วอาการ
+      if (SYMPTOM_KEYWORDS.some((kw) => userMessage.includes(kw))) {
+        console.log("[webhook] symptom keyword triggered");
+        await replyText(replyToken, SYMPTOM_REPLY);
+        continue;
+      }
+
       // 4. ข้อความสั้นคลุมเครือ "มะเร็ง" เดี่ยวๆ → ถามกลับ
       if (userMessage.trim().length <= 6 && userMessage.includes("มะเร็ง")) {
         await replyText(replyToken, VAGUE_CANCER_REPLY);
@@ -178,8 +187,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const systemPrompt = buildSystemPrompt(relevantFaq);
         replyMsg = await askGemini(systemPrompt, [...history, { role: "user", content: userMessage }]);
         // กรอง output: แทนคำต้องห้ามด้วยคำที่เหมาะสมกว่า
-        replyMsg = replyMsg.replace(/ไม่ต้องกลัว[^\s。.!?ค]*[^\s。.!?]*/g, "น้องพร้อมช่วยเหลือนะคะ");
+        replyMsg = replyMsg.replace(/ไม่ต้อง(กลัว|กังวล|ห่วง)[^\s。.!?ค]*[^\s。.!?]*/g, "น้องพร้อมช่วยเหลือนะคะ");
+        // ตัดประโยคที่มั่วเรื่องเวลา (24 ชั่วโมง/ตลอดเวลา) ที่ไม่มีใน FAQ
+        replyMsg = replyMsg.replace(/[^。.!?\n]*(24 ?ชั่วโมง|ตลอด 24|ภายใน 24)[^。.!?\n]*/g, "");
         replyMsg = replyMsg.replace(/ครับ(?=[^/]|$)/g, "ค่ะ");
+        replyMsg = replyMsg.replace(/\n{3,}/g, "\n\n").trim();
         await appendHistory(userId, userMessage, replyMsg);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
