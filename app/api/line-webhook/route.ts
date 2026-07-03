@@ -113,7 +113,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
 
       // SAFETY: ถามอาการของโรค → hard-code กัน AI มั่วอาการ
-      if (SYMPTOM_KEYWORDS.some((kw) => userMessage.includes(kw))) {
+      // ดัก keyword ตรงๆ หรือ มีทั้ง "อาการ" + "มะเร็ง" ในประโยคเดียว
+      const asksSymptom =
+        SYMPTOM_KEYWORDS.some((kw) => userMessage.includes(kw)) ||
+        (userMessage.includes("อาการ") && userMessage.includes("มะเร็ง"));
+      if (asksSymptom) {
         console.log("[webhook] symptom keyword triggered");
         await replyText(replyToken, SYMPTOM_REPLY);
         continue;
