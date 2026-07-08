@@ -17,6 +17,8 @@ import {
   OFFTOPIC_REPLY,
   DOCTOR_COMPARE_KEYWORDS,
   DOCTOR_COMPARE_REPLY,
+  PALLIATIVE_KEYWORDS,
+  pickPalliativeReply,
   CONTACT_INFO,
 } from "@/lib/constants";
 import {
@@ -107,6 +109,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (!userMessage.includes("มะเร็ง") && OFFTOPIC_KEYWORDS.some((kw) => userMessage.includes(kw))) {
         console.log("[webhook] offtopic disease triggered");
         await replyText(replyToken, OFFTOPIC_REPLY);
+        continue;
+      }
+
+      // SAFETY: เคสระยะท้าย/ประคับประคอง → hard-code ตอบ empathy ไม่ส่ง AI (กันมั่วคำแนะนำการแพทย์)
+      if (PALLIATIVE_KEYWORDS.some((kw) => userMessage.includes(kw))) {
+        console.log("[webhook] palliative keyword triggered");
+        await replyText(replyToken, pickPalliativeReply());
         continue;
       }
 
