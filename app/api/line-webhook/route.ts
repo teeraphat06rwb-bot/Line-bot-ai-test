@@ -15,6 +15,8 @@ import {
   pickSymptomReply,
   OFFTOPIC_KEYWORDS,
   OFFTOPIC_REPLY,
+  DOCTOR_COMPARE_KEYWORDS,
+  DOCTOR_COMPARE_REPLY,
   CONTACT_INFO,
 } from "@/lib/constants";
 import {
@@ -144,6 +146,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // ถามไม่ชัด → ถามกลับก่อน ไม่ต้อง booking
       if (CLARIFY_KEYWORDS.some((kw) => userMessage.includes(kw))) {
         await replyText(replyToken, CLARIFY_REPLY);
+        continue;
+      }
+
+      // เปรียบเทียบหมอ "คนไหนเก่งสุด" → ตอบอบอุ่น ไม่เชียร์คนเดียว
+      if (DOCTOR_COMPARE_KEYWORDS.some((kw) => userMessage.includes(kw))) {
+        console.log("[webhook] doctor compare triggered");
+        await replyText(replyToken, DOCTOR_COMPARE_REPLY);
         continue;
       }
 
