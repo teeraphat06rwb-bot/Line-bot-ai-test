@@ -12,7 +12,7 @@ import {
   DIAGNOSIS_KEYWORDS,
   STAFF_KEYWORDS,
   SYMPTOM_KEYWORDS,
-  SYMPTOM_REPLY,
+  pickSymptomReply,
   CONTACT_INFO,
 } from "@/lib/constants";
 import {
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           (userMessage.includes("อาการ") && userMessage.includes("มะเร็ง")));
       if (asksSymptom) {
         console.log("[webhook] symptom keyword triggered");
-        await replyText(replyToken, SYMPTOM_REPLY);
+        await replyText(replyToken, pickSymptomReply());
         continue;
       }
 
