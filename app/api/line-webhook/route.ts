@@ -144,7 +144,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
 
       // ถามไม่ชัด → ถามกลับก่อน ไม่ต้อง booking
-      if (CLARIFY_KEYWORDS.some((kw) => userMessage.includes(kw))) {
+      // แต่ถ้าข้อความมีรายละเอียดชัด (ระยะ/อาการ/ขอรักษา) ให้ผ่านไปตอบจาก FAQ ด้วย empathy
+      const hasDetail =
+        userMessage.trim().length > 30 ||
+        /ระยะ|ลุกลาม|แพร่กระจาย|กระจาย|ตัวเหลือง|ท้องบวม|ประคับประคอง|สุดท้าย|คีโม|ผ่าตัด|ฉายแสง|รักษา|ทำไงดี|ทำยังไงดี|ช่วย/.test(userMessage);
+      if (!hasDetail && CLARIFY_KEYWORDS.some((kw) => userMessage.includes(kw))) {
         await replyText(replyToken, CLARIFY_REPLY);
         continue;
       }
