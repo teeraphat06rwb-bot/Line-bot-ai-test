@@ -220,6 +220,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         // ตัดประโยคที่มั่วเรื่องเวลา (24 ชั่วโมง/ตลอดเวลา) ที่ไม่มีใน FAQ
         replyMsg = replyMsg.replace(/[^。.!?\n]*(24 ?ชั่วโมง|ตลอด 24|ภายใน 24)[^。.!?\n]*/g, "");
         replyMsg = replyMsg.replace(/ครับ(?=[^/]|$)/g, "ค่ะ");
+        // ตัด artifact วงเล็บลงท้ายซ้ำ เช่น "(ค่ะ)" "(ครับ)" "(คะ)"
+        replyMsg = replyMsg.replace(/\s*\((ค่ะ|ครับ|คะ|ค่า)\)/g, "");
         replyMsg = replyMsg.replace(/\n{3,}/g, "\n\n").trim();
         await appendHistory(userId, userMessage, replyMsg);
       } catch (err) {
