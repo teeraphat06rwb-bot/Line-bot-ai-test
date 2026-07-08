@@ -13,6 +13,8 @@ import {
   STAFF_KEYWORDS,
   SYMPTOM_KEYWORDS,
   pickSymptomReply,
+  OFFTOPIC_KEYWORDS,
+  OFFTOPIC_REPLY,
   CONTACT_INFO,
 } from "@/lib/constants";
 import {
@@ -95,6 +97,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (["เคลียร์", "clear", "ลืมเลย", "เริ่มใหม่", "/clear"].includes(userMessage.trim().toLowerCase())) {
         await clearHistory(userId);
         await replyText(replyToken, "น้องใส่ใจลืมบทสนทนาเก่าหมดแล้วนะคะ 🧹 เริ่มใหม่ได้เลยค่ะ 😊");
+        continue;
+      }
+
+      // SAFETY: โรคนอกขอบเขต (ไม่ใช่มะเร็ง) → ไม่ส่ง AI กันมั่ว
+      // ยกเว้นถ้าพูดถึง "มะเร็ง" ด้วย (เช่น มะเร็งตับอ่อน ที่มีคำว่า ตับ)
+      if (!userMessage.includes("มะเร็ง") && OFFTOPIC_KEYWORDS.some((kw) => userMessage.includes(kw))) {
+        console.log("[webhook] offtopic disease triggered");
+        await replyText(replyToken, OFFTOPIC_REPLY);
         continue;
       }
 
